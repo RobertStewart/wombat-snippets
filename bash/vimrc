@@ -1,0 +1,22 @@
+set nocompatible
+
+" No beeping
+set noerrorbells
+set visualbell
+
+set tabstop=4
+
+" Spaces for tabs
+set expandtab
+
+syntax on
+
+set matchpairs+=<:>                 " match < > with the % command, too
+
+" Auto-detect file type
+filetype on
+
+set ruler                  " Give me a ruler, tell me where I am in the file.
+set showcmd                " Show me the vi command in the ruler
+set showmatch              " Show me matching close braces
+
