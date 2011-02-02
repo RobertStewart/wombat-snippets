@@ -1,0 +1,12 @@
+#!/bin/sh 
+# First arg is the pattern. Following args are text to try to match against pattern
+pattern="$1" 
+shift 
+echo "Matching against '$pattern':"
+for string 
+do
+  case $string in 
+  $pattern) echo "$string: Match." ;;
+  *) echo "$string: No match." ;; 
+  esac 
+done

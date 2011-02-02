@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# Similar to ssh-copy-id, but copies SSH keys to many hosts.
+
+KEY="$HOME/.ssh/id_rsa.pub"
+
+if [ ! -f ~/.ssh/id_rsa.pub ];then
+    echo "private key not found at $KEY"
+    echo "* please create it with "ssh-keygen" *"
+    echo "* to login to the remote host without a password, don't give the key you create with ssh-keygen a password! *"
+    exit
+fi
+
+if [ -z $2 ];then
+    echo "usage: ssh-copy-ids user host1 host2 ..."
+    echo "  Specify the user on all of the remote hosts as the first argument to this script."
+    echo "  After the user argument, specify one or more hostnames as additional arguments."
+    exit 0
+fi
+
+KEYCODE=`cat $KEY`
+
+for host in ${@:2}
+do
+    echo "Putting your key on $host... "
+
+    ssh -q $1@$host "mkdir ~/.ssh 2>/dev/null; chmod 700 ~/.ssh; echo "$KEYCODE" >> ~/.ssh/authorized_keys; chmod 644 ~/.ssh/authorized_keys"
+done
+
+echo "done!"
