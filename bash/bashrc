@@ -97,42 +97,32 @@ function extract() {
     fi  
 }
 
+# Show current git branch in prompt
+function find_git_branch {
+    local dir=. head
+    until [ "$dir" -ef / ]; do
+        if [ -f "$dir/.git/HEAD" ]; then
+            head=$(< "$dir/.git/HEAD")
+            if [[ $head == ref:\ refs/heads/* ]]; then
+                git_branch="[${head##*/}]"
+            elif [[ $head != '' ]]; then
+                git_branch='[detached]'
+            else
+                git_branch='[unknown]'
+            fi
+            return
+        fi
+        dir="../$dir"
+    done
+    git_branch=''
+}
+PROMPT_COMMAND="find_git_branch; $PROMPT_COMMAND"
+export PS1="\W\$git_branch% "
+
 
 #-------------------------
 # OS X Specific Functions
 #-------------------------
-
-# Define colors for custom prompt
-red='\[\e[0;31m\]'
-RED='\[\e[1;31m\]'
-blue='\[\e[0;34m\]'
-BLUE='\[\e[1;34m\]'
-cyan='\[\e[0;36m\]'
-CYAN='\[\e[1;36m\]'
-NC='\[\e[0m\]'              # No Color
-
-function customprompt() {
-    # Set the window title to user, host and relative path (Use \W for full path)
-    TITLE="\u@\h: \w"
-    
-    #  \[...\] tells bash to ignore non-printing control characters when calculating prompt width.
-    #  Otherwise, line editing commands get confused while placing the cursor.
-    LINE_PROMPT="${cyan}\u@\h:\w\n${red}[\!] \$ ${NC}" 
-    
-    # Set up PS1 to do the window title and line prompt
-    case $TERM in
-        xterm*)
-            PS1="\[\033]0;$TITLE\007\]$LINE_PROMPT"
-            ;;
-        *)
-            PS1="$LINE_PROMPT"
-            ;;
-    esac
-}
-
-# Set custom prompt
-customprompt
-
 
 # Show ssh sessions with a different style.
 # TERM_PROGRAM doesn't get set if we are logged in remotely,
@@ -182,6 +172,23 @@ function cdf() {
     -e 'end tell' 2>/dev/null`"
 }
 
+# Moves files to trash, rather than immediately deleting them
+function trash () {
+    local path
+    for path in "$@"; do
+        # ignore any arguments
+        if [[ "$path" = -* ]];
+        then :
+        else local dst=${path##*/}
+            # append the time if necessary
+            while [ -e ~/.Trash/"$dst" ]; do
+                dst="$dst "$(date +%H-%M-%S)
+            done
+            mv "$path" ~/.Trash/"$dst"
+        fi
+    done
+}
+
 #-----------------------------
 # Machine Specific Functions
 #   i.e., may require additional setup of MySQL, Python, Java, etc.
@@ -207,3 +214,21 @@ function addcp() {
         export CLASSPATH=$CLASSPATH${CLASSPATH:+:}"$i";
     done
 }
+
+# Pretty prints JSON from one file to another, or to stdout
+#   arg1 = file name with ugly JSON
+#   arg2 = file name to which to write pretty JSON. If none specified, write to stdout.
+function prettyjson() {
+    if [ "$2" != "" ]; then
+        cat $1 | python -mjson.tool > $2
+    else
+        cat $1 | python -mjson.tool 2>&1
+    fi
+}
+
+# Show all git branches by last modified date
+# > recent_branches
+function recent_branches() {
+  for k in `git branch -r|perl -pe s/^..//`;do echo -e `git show --pretty=format:"%Cgreen%ci %Cblue%cr%Creset" $k|head -n 1`\\t$k;done|sort  
+}
+
