@@ -1,6 +1,7 @@
+" Use Vim settings, rather then Vi settings 
 set nocompatible
 
-" No beeping
+" Enough with the beeping already
 set noerrorbells
 set visualbell
 
@@ -9,9 +10,16 @@ set tabstop=4
 " Spaces for tabs
 set expandtab
 
+" Reload files changed outside vim
+set autoread
+
+" Turn on syntax highlighting
 syntax on
 
-set matchpairs+=<:>                 " match < > with the % command, too
+colorscheme slate
+
+set incsearch             " Find the next match as we type the search
+set hlsearch              " Hilight searches by default
 
 " Auto-detect file type
 filetype on
@@ -19,4 +27,5 @@ filetype on
 set ruler                  " Give me a ruler, tell me where I am in the file.
 set showcmd                " Show me the vi command in the ruler
 set showmatch              " Show me matching close braces
+set matchpairs+=<:>        " Match < > with the % command, too
 
