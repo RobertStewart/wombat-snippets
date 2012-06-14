@@ -1,1 +1,2 @@
-Code and config snippets
+* dotfiles
+* code and config snippets
