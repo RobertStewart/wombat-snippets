@@ -1,18 +1,33 @@
+# don't put duplicate lines or lines that start with a blank space in the history. See bash(1) for more options
+export HISTCONTROL=ignoreboth
+export HISTSIZE=10000
+export HISTFILESIZE=10000
+
+
 #-----------------------------------
 # Portable Aliases
 #-----------------------------------
 
 alias grep='grep --color'
 alias l='ls -lh'
-alias ll='ls -lh'
-alias ls='ls -HGF'
-alias la='ls -ah'
-alias lr='ls -R'
-alias md='mkdir -p'
+alias ls='ls -HF'
+alias la='ls -a'
 alias ...='cd ../..'
 alias ....='cd ../../..'
 alias h='history'
 alias whereami='curl -s http://api.hostip.info/get_html.php?ip=$1'
+alias externalip="wget -q -O - checkip.dyndns.org|sed -e 's/.*Current IP Address: //' -e 's/<.*$//'"
+alias path='echo -e ${PATH//:/\\n}'
+alias vi='vim'
+alias edit='vim'
+alias svi='sudo vi'
+alias ports='netstat -tulap tcp'
+alias durev='du -s * | sort -rn'
+alias httpdreload='sudo /usr/sbin/apachectl -k graceful'
+alias psgrep='ps aux | grep -v grep | grep "$@" -i --color=auto'
+alias hgrep='h | grep --color=auto'
+alias mostused='cut -f1 -d" " ~/.bash_history | sort | uniq -c | sort -nr | head -n 30'
+
 
 #-----------------------------------
 # OS X Aliases
@@ -38,15 +53,6 @@ alias mysqllog="sudo tshark -i lo0 -V -f 'dst port 3306' | egrep 'Statement:|Sta
 # Start and stop MySQL
 alias mysql_start="/Library/StartupItems/MySQLCOM/MySQLCOM start"
 alias mysql_stop="/Library/StartupItems/MySQLCOM/MySQLCOM stop"
-
-
-#-----------------------------
-# Machine Specific Functions
-#   i.e., may require additional setup of MySQL, Python, Java, etc.
-#-----------------------------
-
-# Launch MySQL CLI in batch mode, i.e., query results are just tab-separated values
-alias mybatch='mysql -B -N '
 
 
 #-----------------------------------
@@ -97,50 +103,17 @@ function extract() {
     fi  
 }
 
-# Show current git branch in prompt
-function find_git_branch {
-    local dir=. head
-    until [ "$dir" -ef / ]; do
-        if [ -f "$dir/.git/HEAD" ]; then
-            head=$(< "$dir/.git/HEAD")
-            if [[ $head == ref:\ refs/heads/* ]]; then
-                git_branch="[${head##*/}]"
-            elif [[ $head != '' ]]; then
-                git_branch='[detached]'
-            else
-                git_branch='[unknown]'
-            fi
-            return
-        fi
-        dir="../$dir"
-    done
-    git_branch=''
+# highlight search term when tailing log
+# arg1 = file
+# arg2 = search term
+function tailsearch() { 
+    tail -f $1 | perl -pe "s/$2/\e[1;31;43m$&\e[0m/g"
 }
-PROMPT_COMMAND="find_git_branch; $PROMPT_COMMAND"
-export PS1="\W\$git_branch% "
 
 
 #-------------------------
 # OS X Specific Functions
 #-------------------------
-
-# Show ssh sessions with a different style.
-# TERM_PROGRAM doesn't get set if we are logged in remotely,
-# but then the originating Terminal could have done this (hopefully).
-if [ "$TERM_PROGRAM" = "Apple_Terminal" ]; then
-    function ssh() {
-        # Better to write AppleScript cmd to get previous style then hardcode here
-        SetTerminalStyle Novel
-        command ssh "$@"
-        SetTerminalStyle Basic
-    }
-fi
-
-# Open man page in TextMate.
-#   arg1 = command name
-function mateman() {
-    MANWIDTH=160 MANPAGER='col -bx' man $@ | mate
-}
 
 # Quit OS X apps from command line.
 #   vararg = app names
@@ -189,14 +162,52 @@ function trash () {
     done
 }
 
+
 #-----------------------------
 # Machine Specific Functions
 #   i.e., may require additional setup of MySQL, Python, Java, etc.
 #-----------------------------
 
-# Serve current dir on specified port (8000 by default)
-function serve() {
-    python -m SimpleHTTPServer ${1:-8000}
+# Launch MySQL CLI in batch mode, i.e., query results are just tab-separated values
+alias mybatch='mysql -B -N '
+
+function find_git_branch {
+    local dir=. head
+    until [ "$dir" -ef / ]; do
+        if [ -f "$dir/.git/HEAD" ]; then
+            head=$(< "$dir/.git/HEAD")
+            if [[ $head == ref:\ refs/heads/* ]]; then
+                git_branch="[${head##*/}]"
+            elif [[ $head != '' ]]; then
+                git_branch='[detached]'
+            else
+                git_branch='[unknown]'
+            fi
+            return
+        fi
+        dir="../$dir"
+    done
+    git_branch=''
+}
+
+PROMPT_COMMAND="find_git_branch; $PROMPT_COMMAND"
+export PS1="\h:\W\$git_branch% "
+
+# Show all git branches by last modified date
+# > recent_branches
+function recent_branches() {
+  for k in `git branch -r|perl -pe s/^..//`;do echo -e `git show --pretty=format:"%Cgreen%ci %Cblue%cr%Creset" $k|head -n 1`\\t$k;done|sort  
+}
+
+# Pretty prints JSON from one file to another, or to stdout
+#   arg1 = file name with ugly JSON
+#   arg2 = file name to which to write pretty JSON. If none specified, write to stdout.
+function prettyjson() {
+    if [ "$2" != "" ]; then
+        cat $1 | python -mjson.tool > $2
+    else
+        cat $1 | python -mjson.tool 2>&1
+    fi
 }
 
 # Return list of queries actually executing on a MySQL server
@@ -214,21 +225,3 @@ function addcp() {
         export CLASSPATH=$CLASSPATH${CLASSPATH:+:}"$i";
     done
 }
-
-# Pretty prints JSON from one file to another, or to stdout
-#   arg1 = file name with ugly JSON
-#   arg2 = file name to which to write pretty JSON. If none specified, write to stdout.
-function prettyjson() {
-    if [ "$2" != "" ]; then
-        cat $1 | python -mjson.tool > $2
-    else
-        cat $1 | python -mjson.tool 2>&1
-    fi
-}
-
-# Show all git branches by last modified date
-# > recent_branches
-function recent_branches() {
-  for k in `git branch -r|perl -pe s/^..//`;do echo -e `git show --pretty=format:"%Cgreen%ci %Cblue%cr%Creset" $k|head -n 1`\\t$k;done|sort  
-}
-
